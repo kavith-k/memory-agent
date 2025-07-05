@@ -4,7 +4,7 @@ from google.adk.runners import Runner
 from google.genai import types
 
 # from memory import CouchbaseMemory
-from tools import save_user_preference, retrieve_user_preferences, find_properties, MODEL
+from tools import save_user_preference, retrieve_user_preferences, find_properties,MODEL
 
 # Initialize session service and runner
 session_service = InMemorySessionService()

@@ -16,41 +16,16 @@ mistral = OllamaLLM(model="mistral:instruct")
 # Load environment variables from .env file
 load_dotenv()
 
-from real_estate_agent import real_estate_advisor, call_agent_async, create_session
-from email_agent import e_mail_agent
-from tools import save_user_preference, retrieve_user_preferences, find_properties
-
 USER_ID = "RealEstateClient"
-
-# Agent(
-#     name="RealEstateAdvisor",
-#     model="gemini-2.5-flash",
-#     description="""
-#             Take in an email from a client and analyze their real estate needs. Provide thorough market research and expert advice
-#             tailored to the Portuguese property market. If no useful research can be found, reply with 'NO USEFUL RESEARCH FOUND'
-#             otherwise provide valuable insights and property recommendations.
-#             """,
-#     instruction="""
-# You are an expert Real Estate Advisor specializing in the Portuguese property market. Your role is to:
-# 1. Understand client needs and preferences through email communication
-# 2. Use `retrieve_user_preferences` with category 'property_preferences' to recall client history
-# 3. Call `find_properties` with location and budget parameters to suggest suitable properties
-# 4. Provide market analysis and negotiation support based on current market conditions
-# 5. If no preferences exist, guide the client to save their preferences using `save_user_preference`
-
-# Key Expertise:
-# - Portuguese property market trends and values
-# - Property investment analysis
-# - Negotiation strategies
-# - Market research and analytics
-# - Client communication and relationship management
-# """,
-#     tools=[save_user_preference, retrieve_user_preferences, find_properties])
-
-
 session_service = InMemorySessionService()
 APP_NAME = "real_estate_advisor_app"
 SESSION_ID = "session_001"
+
+from real_estate_agent import real_estate_advisor, call_agent_async, create_session
+from email_agent import e_mail_agent
+from tools import save_user_preference, retrieve_user_preferences, find_properties,store_email,retrieve_emails,get_email_by_id
+
+
 
 
 
