@@ -3,7 +3,7 @@ from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from google.genai import types
 
-from memory import CouchbaseMemory
+# from memory import CouchbaseMemory
 from tools import save_user_preference, retrieve_user_preferences, find_properties
 
 # Initialize session service and runner

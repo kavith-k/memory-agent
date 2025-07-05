@@ -125,3 +125,130 @@ def find_properties(location: str, budget: str) -> Dict:
             else "Please specify your investment preferences (residential, investment, or rental) for better recommendations."
         )
     }
+
+
+
+
+# Initialize email storage
+email_data = CouchbaseMemory(
+    conn_str=os.getenv("COUCHBASE_CONN_STR"),
+    username=os.getenv("COUCHBASE_USERNAME"),
+    password=os.getenv("COUCHBASE_PASSWORD"),
+    bucket_name=os.getenv("COUCHBASE_BUCKET"),
+    scope_name="emails",
+    collection_name="messages"
+)
+
+
+def save_email(message: Dict) -> Dict:
+    """
+    Save an email message to the database.
+    
+    Args:
+        message (Dict): Email message with required fields: date, from, to, subject, body
+        
+    Returns:
+        Dict: Status message
+    """
+    required_fields = ['date', 'from', 'to', 'subject', 'body']
+    if not all(field in message for field in required_fields):
+        return {
+            "status": "error",
+            "message": "Missing required fields: " + ", ".join(required_fields)
+        }
+    
+    # Generate a unique ID for the email
+    email_id = f"email_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    message['id'] = email_id
+    
+    # Save to database
+    email_data.add(user_id="system", category="email", data=message)
+    
+    return {
+        "status": "success",
+        "message": f"Email saved with ID: {email_id}",
+        "email_id": email_id
+    }
+
+
+def retrieve_emails(filters: Optional[Dict] = None) -> Dict:
+    """
+    Retrieve emails from the database based on optional filters.
+    
+    Args:
+        filters (Dict, optional): Filters to apply to the search. Can include:
+            - date: specific date or date range
+            - from: sender email
+            - to: recipient email
+            - subject: subject contains
+    
+    Returns:
+        Dict: List of matching emails and total count
+    """
+    query = "SELECT META().id, m.* FROM `messages` m WHERE category = 'email'"
+    params = {}
+    
+    if filters:
+        conditions = []
+        if 'date' in filters:
+            date = filters['date']
+            if isinstance(date, tuple):  # Date range
+                conditions.append("date BETWEEN $start_date AND $end_date")
+                params['start_date'] = date[0]
+                params['end_date'] = date[1]
+            else:  # Specific date
+                conditions.append("date = $date")
+                params['date'] = date
+        
+        if 'from' in filters:
+            conditions.append("`from` = $from")
+            params['from'] = filters['from']
+        
+        if 'to' in filters:
+            conditions.append("`to` = $to")
+            params['to'] = filters['to']
+        
+        if 'subject' in filters:
+            conditions.append("subject LIKE $subject")
+            params['subject'] = f"%{filters['subject']}%"
+        
+        if conditions:
+            query += " AND " + " AND ".join(conditions)
+    
+    query += " ORDER BY date DESC LIMIT 100"
+    
+    try:
+        results = email_data.query(query, params)
+        return {
+            "status": "success",
+            "emails": results,
+            "count": len(results)
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+def get_email_by_id(email_id: str) -> Dict:
+    """
+    Retrieve a specific email by its ID.
+    
+    Args:
+        email_id (str): ID of the email to retrieve
+        
+    Returns:
+        Dict: Email data or error message
+    """
+    try:
+        result = email_data.get(email_id)
+        return {
+            "status": "success",
+            "email": result
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }

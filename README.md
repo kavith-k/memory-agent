@@ -5,7 +5,7 @@ A Python-based travel assistant application that uses Google's Agent Development
 ## Requirements
 
 - Python 3.10 or higher
-- Google API Key (for Gemini AI)
+- Google API Key (for Gemini AI): get one at https://aistudio.google.com/apikey
 - **Couchbase Capella account and cluster**
 
 ## Setup Instructions
