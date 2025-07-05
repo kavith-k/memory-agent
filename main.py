@@ -8,6 +8,9 @@ from .real_estate_agent import real_estate_advisor, call_agent_async, create_ses
 load_dotenv()
 
 USER_ID = "RealEstateClient"
+
+real_estate_advisor = Agent(
+    name="Real Estate Advisor",
     model="gemini-2.5-flash",
     description="""
             Take in an email from a client and analyze their real estate needs. Provide thorough market research and expert advice
