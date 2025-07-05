@@ -1,9 +1,11 @@
 from datetime import datetime
 import random
-from typing import Dict, List
+from typing import Dict, List, Optional
 import os
 
 from memory import CouchbaseMemory
+
+MODEL = "gemini-2.5-flash"
 
 # Initialize memory system
 persistent_data = CouchbaseMemory(
@@ -140,98 +142,67 @@ email_data = CouchbaseMemory(
 )
 
 
-def save_email(message: Dict) -> Dict:
-    """
-    Save an email message to the database.
-    
+def store_email(
+    from_sender: str,
+    to_recipient: str,
+    date: str,
+    subject: str,
+    body: str,
+    cc: Optional[str] = None,
+) -> dict:
+    """Saves an email to memory.
+
     Args:
-        message (Dict): Email message with required fields: date, from, to, subject, body
-        
+        from_sender: The sender of the email (e.g., 'John Doe <john.doe@example.com>').
+        to_recipient: The recipient of the email.
+        date: The date of the email (e.g., 'YYYY-MM-DD').
+        subject: The subject of the email.
+        body: The content of the email.
+        cc: The CC recipients of the email (optional).
+
     Returns:
-        Dict: Status message
+        A dictionary with the status of the operation.
     """
-    required_fields = ['date', 'from', 'to', 'subject', 'body']
-    if not all(field in message for field in required_fields):
-        return {
-            "status": "error",
-            "message": "Missing required fields: " + ", ".join(required_fields)
-        }
-    
-    # Generate a unique ID for the email
-    email_id = f"email_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    message['id'] = email_id
-    
-    # Save to database
-    email_data.add(user_id="system", category="email", data=message)
-    
-    return {
-        "status": "success",
-        "message": f"Email saved with ID: {email_id}",
-        "email_id": email_id
-    }
+    user_id = getattr(store_email, "user_id", USER_ID)
+    email_data = (
+        f"From: {from_sender}\n"
+        f"To: {to_recipient}\n"
+        f"Date: {date}\n"
+        f"CC: {cc or ''}\n"
+        f"Subject: {subject}\n"
+        f"Body: {body}"
+    )
+    persistent_data.add(user_id=user_id, category="emails", data=email_data)
+    return {"status": "success", "message": "Email stored successfully."}
 
 
-def retrieve_emails(filters: Optional[Dict] = None) -> Dict:
-    """
-    Retrieve emails from the database based on optional filters.
-    
+def retrieve_emails(query: Optional[str] = None) -> dict:
+    """Retrieves emails from memory that match a query.
+
     Args:
-        filters (Dict, optional): Filters to apply to the search. Can include:
-            - date: specific date or date range
-            - from: sender email
-            - to: recipient email
-            - subject: subject contains
-    
+        query: The search term to filter emails. If empty, all emails are returned.
+
     Returns:
-        Dict: List of matching emails and total count
+        A dictionary containing the list of matching emails.
     """
-    query = "SELECT META().id, m.* FROM `messages` m WHERE category = 'email'"
-    params = {}
-    
-    if filters:
-        conditions = []
-        if 'date' in filters:
-            date = filters['date']
-            if isinstance(date, tuple):  # Date range
-                conditions.append("date BETWEEN $start_date AND $end_date")
-                params['start_date'] = date[0]
-                params['end_date'] = date[1]
-            else:  # Specific date
-                conditions.append("date = $date")
-                params['date'] = date
-        
-        if 'from' in filters:
-            conditions.append("`from` = $from")
-            params['from'] = filters['from']
-        
-        if 'to' in filters:
-            conditions.append("`to` = $to")
-            params['to'] = filters['to']
-        
-        if 'subject' in filters:
-            conditions.append("subject LIKE $subject")
-            params['subject'] = f"%{filters['subject']}%"
-        
-        if conditions:
-            query += " AND " + " AND ".join(conditions)
-    
-    query += " ORDER BY date DESC LIMIT 100"
-    
-    try:
-        results = email_data.query(query, params)
-        return {
-            "status": "success",
-            "emails": results,
-            "count": len(results)
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+    user_id = getattr(retrieve_emails, "user_id", USER_ID)
+    all_emails = persistent_data.search_by_category(user_id=user_id, category="emails")
+
+    if not query:
+        return {"status": "success", "emails": all_emails, "count": len(all_emails)}
+
+    matching_emails = [email for email in all_emails if query.lower() in email.lower()]
+
+    print(
+        f"INFO: Found {len(matching_emails)} emails matching '{query}'"
+    )
+
+    return {"status": "success", "emails": matching_emails, "count": len(matching_emails)}
 
 
-def get_email_by_id(email_id: str) -> Dict:
+
+
+def get_email_by_id(email_id: str) -> dict:
     """
     Retrieve a specific email by its ID.
     

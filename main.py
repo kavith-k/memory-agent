@@ -5,6 +5,13 @@ from google.adk.agents import Agent
 from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from google.genai import types
+# from langchain.llms import Ollama
+# from langchain_community.llms import Ollama
+from langchain_ollama import OllamaLLM
+
+# llama = Ollama(model="llama2-uncensored")
+mistral = OllamaLLM(model="mistral:instruct")
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -45,8 +52,10 @@ session_service = InMemorySessionService()
 APP_NAME = "real_estate_advisor_app"
 SESSION_ID = "session_001"
 
+
+
 runner = Runner(
-    agent=real_estate_advisor,
+    agent=[real_estate_advisor, e_mail_agent],
     app_name=APP_NAME,
     session_service=session_service,
 )
@@ -57,6 +66,11 @@ async def call_agent_async(query: str, user_id: str, session_id: str):
     content = types.Content(role="user", parts=[types.Part(text=query)])
     setattr(save_user_preference, "user_id", user_id)
     setattr(retrieve_user_preferences, "user_id", user_id)
+    # Set user_id for tool functions
+    setattr(store_email, "user_id", user_id)
+    setattr(retrieve_emails, "user_id", user_id)
+    setattr(get_email_by_id, "user_id", user_id)
+    setattr(find_properties, "user_id", user_id)
 
     async for event in runner.run_async(
         user_id=user_id, session_id=session_id, new_message=content
@@ -70,7 +84,10 @@ async def call_agent_async(query: str, user_id: str, session_id: str):
 
 
 async def interactive_chat():
-    print("--- Starting Interactive Property Advisor ---")
+    print("--- Starting Interactive Email RAG Agent ---")
+    print("You can store and retrieve emails.")
+    print("Example storage: store email from 'John <j.doe@example.com>' to 'Jane <jane@example.com>' with date '2023-01-01', subject 'Meeting' and body 'Hi, team.'")
+    print("Example retrieval: what are the emails about 'Meeting'?")
     print("Type 'quit' to end the session.")
     while True:
         user_query = input("\n> ")
