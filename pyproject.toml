@@ -8,4 +8,5 @@ dependencies = [
     "google-adk>=1.5.0",
     "python-dotenv>=1.0.0",
     "couchbase>=4.0.0",
+    "litellm"
 ]
