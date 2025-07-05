@@ -1,16 +1,21 @@
 import os
 import asyncio
 from dotenv import load_dotenv
-
-from .real_estate_agent import real_estate_advisor, call_agent_async, create_session
+from google.adk.agents import Agent
+from google.adk.sessions import InMemorySessionService
+from google.adk.runners import Runner
+from google.genai import types
 
 # Load environment variables from .env file
 load_dotenv()
 
+from real_estate_agent import real_estate_advisor, call_agent_async, create_session
+from tools import save_user_preference, retrieve_user_preferences, find_properties
+
 USER_ID = "RealEstateClient"
 
-real_estate_advisor = Agent(
-    name="Real Estate Advisor",
+Agent(
+    name="RealEstateAdvisor",
     model="gemini-2.5-flash",
     description="""
             Take in an email from a client and analyze their real estate needs. Provide thorough market research and expert advice
@@ -32,8 +37,7 @@ Key Expertise:
 - Market research and analytics
 - Client communication and relationship management
 """,
-    tools=[save_user_preference, retrieve_user_preferences, find_properties],)
-)
+    tools=[save_user_preference, retrieve_user_preferences, find_properties])
 
 
 session_service = InMemorySessionService()
@@ -41,7 +45,7 @@ APP_NAME = "real_estate_advisor_app"
 SESSION_ID = "session_001"
 
 runner = Runner(
-    agent=travel_agent,
+    agent=real_estate_advisor,
     app_name=APP_NAME,
     session_service=session_service,
 )
@@ -65,7 +69,7 @@ async def call_agent_async(query: str, user_id: str, session_id: str):
 
 
 async def interactive_chat():
-    print("--- Starting Interactive Travel Assistant ---")
+    print("--- Starting Interactive Property Advisor ---")
     print("Type 'quit' to end the session.")
     while True:
         user_query = input("\n> ")
@@ -79,6 +83,7 @@ async def create_session():
     await session_service.create_session(
         app_name=APP_NAME, user_id=USER_ID, session_id=SESSION_ID
     )
+
 
 
 if __name__ == "__main__":

@@ -3,15 +3,15 @@ from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from google.genai import types
 
-from .memory import CouchbaseMemory
-from .tools import save_user_preference, retrieve_user_preferences, find_properties
+from memory import CouchbaseMemory
+from tools import save_user_preference, retrieve_user_preferences, find_properties
 
 # Initialize session service and runner
 session_service = InMemorySessionService()
 
 # Create the Real Estate Advisor agent
 real_estate_advisor = Agent(
-    name="Real Estate Advisor",
+    name="RealEstateAdvisor",
     model="gemini-2.5-flash",
     description="""
             Take in an email from a client and analyze their real estate needs. Provide thorough market research and expert advice

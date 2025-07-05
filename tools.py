@@ -1,8 +1,9 @@
 from datetime import datetime
 import random
 from typing import Dict, List
+import os
 
-from .memory import CouchbaseMemory
+from memory import CouchbaseMemory
 
 # Initialize memory system
 persistent_data = CouchbaseMemory(
