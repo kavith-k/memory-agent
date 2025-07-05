@@ -1,13 +1,17 @@
-import os
-import asyncio
-from dotenv import load_dotenv
+from google.adk.agents import Agent
+from google.adk.sessions import InMemorySessionService
+from google.adk.runners import Runner
+from google.genai import types
 
-from .real_estate_agent import real_estate_advisor, call_agent_async, create_session
+from .memory import CouchbaseMemory
+from .tools import save_user_preference, retrieve_user_preferences, find_properties
 
-# Load environment variables from .env file
-load_dotenv()
+# Initialize session service and runner
+session_service = InMemorySessionService()
 
-USER_ID = "RealEstateClient"
+# Create the Real Estate Advisor agent
+real_estate_advisor = Agent(
+    name="Real Estate Advisor",
     model="gemini-2.5-flash",
     description="""
             Take in an email from a client and analyze their real estate needs. Provide thorough market research and expert advice
@@ -29,20 +33,15 @@ Key Expertise:
 - Market research and analytics
 - Client communication and relationship management
 """,
-    tools=[save_user_preference, retrieve_user_preferences, find_properties],)
+    tools=[save_user_preference, retrieve_user_preferences, find_properties],
 )
 
-
-session_service = InMemorySessionService()
-APP_NAME = "real_estate_advisor_app"
-SESSION_ID = "session_001"
-
+# Create runner instance
 runner = Runner(
-    agent=travel_agent,
-    app_name=APP_NAME,
+    agent=real_estate_advisor,
+    app_name="real_estate_advisor_app",
     session_service=session_service,
 )
-
 
 async def call_agent_async(query: str, user_id: str, session_id: str):
     print(f"\n>>> User ({user_id}): {query}")
@@ -51,41 +50,16 @@ async def call_agent_async(query: str, user_id: str, session_id: str):
     setattr(retrieve_user_preferences, "user_id", user_id)
 
     async for event in runner.run_async(
-        user_id=user_id, session_id=session_id, new_message=content
+        content=content,
+        session_id=session_id,
+        user_id=user_id,
     ):
-        if event.is_final_response() and event.content and event.content.parts:
-            final_response = event.content.parts[0].text
-            print(f"<<< Assistant: {final_response}")
-            return final_response
-
-    return "No response received."
-
-
-async def interactive_chat():
-    print("--- Starting Interactive Travel Assistant ---")
-    print("Type 'quit' to end the session.")
-    while True:
-        user_query = input("\n> ")
-        if user_query.lower() in ["quit", "exit"]:
-            print("Ending session. Goodbye!")
-            break
-        await call_agent_async(query=user_query, user_id=USER_ID, session_id=SESSION_ID)
-
+        if event.type == "message":
+            print(f"\n<<< Agent: {event.content.parts[0].text}")
+        elif event.type == "error":
+            print(f"\n!!! Error: {event.content.parts[0].text}")
 
 async def create_session():
     await session_service.create_session(
-        app_name=APP_NAME, user_id=USER_ID, session_id=SESSION_ID
+        app_name="real_estate_advisor_app", user_id=USER_ID, session_id=SESSION_ID
     )
-
-
-if __name__ == "__main__":
-    if (
-        not os.getenv("GOOGLE_API_KEY")
-        or os.getenv("GOOGLE_API_KEY") == "YOUR_GOOGLE_API_KEY_HERE"
-    ):
-        print(
-            "ERROR: Please set your GOOGLE_API_KEY environment variable to run this script."
-        )
-    else:
-        asyncio.run(create_session())
-        asyncio.run(interactive_chat())
